@@ -537,7 +537,7 @@ int main() {
     ImGui_ImplOpenGL3_Init("#version 330");
 
     // Our state
-    bool show_demo_window = true;
+    bool show_demo_window = false;
 
     s.params.cirrus = 0.8;
     s.params.cumulus = 0.4;
@@ -586,6 +586,10 @@ int main() {
         ImGui::SliderFloat("time", &s.params.time, 0, 630);
         ImGui::SliderFloat("cirrus", &s.params.cirrus, 0, 1);
         ImGui::SliderFloat("cumulus", &s.params.cumulus, 0, 1);
+
+        if (ImGui::Button("Close window")) {
+            glfwSetWindowShouldClose(window, 1);
+        }
 
         ImGui::End();
 
