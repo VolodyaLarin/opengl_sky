@@ -108,8 +108,8 @@ const char *skyFragShader = GLSL(
         }
 
         void main() {
-            if (pos.y < 0)
-                discard;
+//            if (pos.y < 0)
+//                discard;
 
             // Atmosphere Scattering
             float mu = dot(normalize(pos), normalize(fsun));
@@ -215,6 +215,7 @@ typedef struct {
 
 
 struct RenderParams {
+    bool isPlaying = false;
     float time;
     float cirrus, cumulus;
 };
@@ -461,7 +462,7 @@ scene makeScene() {
             .state = {
                     .x = 0.0f,
                     .y = 2.0f,
-                    .z = -3.0f,
+                    .z = -7.0f,
                     .r = 3.14f,
                     .r2 = 1.0f
             }
@@ -489,13 +490,21 @@ void deleteScene(scene s) {
 // Main Loop
 
 int main() {
+
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow *window = glfwCreateWindow(800, 600, "Test", NULL, NULL);
-//    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    int max_display_w = 1500, max_display_h = 900;
+
+    int trash;
+    GLFWmonitor* wmonitor = glfwGetPrimaryMonitor();
+    glfwGetMonitorWorkarea(wmonitor, &trash, &trash,&max_display_w, &max_display_h);
+
+    GLFWwindow *window = glfwCreateWindow(max_display_w, max_display_h, "Test", wmonitor, NULL);
     glfwMakeContextCurrent(window);
 
     glewExperimental = GL_TRUE;
@@ -507,7 +516,6 @@ int main() {
     glEnable(GL_CULL_FACE);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    int max_display_w = 800, max_display_h = 600;
 
     scene s = makeScene();
     makeEntity(&s, skyVertShader, skyFragShader, 0, NULL, NULL, 4, 0, 0, 0, 0, 0);
@@ -534,36 +542,33 @@ int main() {
     s.params.cirrus = 0.8;
     s.params.cumulus = 0.4;
 
+    float lastTime = (float) glfwGetTime() * 0.2f - 0.0f;
+
     glfwGetCursorPos(window, &s.state.px, &s.state.py);
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        float currentTime = (float) glfwGetTime() * 0.2f - 0.0f;
+
+        if (s.params.isPlaying) {
+            s.params.time += currentTime - lastTime;
+        }
+
+        lastTime = currentTime;
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-//        // Move Cursor
-//        double mx = s.state.px;
-//        double my = s.state.py;
-//
-////        glfwGetCursorPos(window, &mx, &my);
-//        s.state.r -= (float) (mx - s.state.px) * 0.01f;
-//        s.state.r2 -= (float) (my - s.state.py) * 0.01f;
-//        s.state.px = (float) mx;
-//        s.state.py = (float) my;
-
-
-        int display_w = 800, display_h = 600;
+        int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
-
 
         // Clear Framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, s.entities[1].fb);
+
+        glClearColor(0,0.4,0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-        // Render the Scene
-//        float time = (float) glfwGetTime() * 0.2f - 0.0f;
         renderScene(s, display_w, display_h);
 
         if (show_demo_window)
@@ -571,9 +576,14 @@ int main() {
 
         ImGui::Begin("Settings");
 
-        ImGui::SliderFloat("r1", &s.state.r, -5, 5);
-        ImGui::SliderFloat("r2", &s.state.r2, -5, 5);
-        ImGui::SliderFloat("time", &s.params.time, 0, 100);
+        ImGui::SliderFloat("r1", &s.state.r, -M_PI, M_PI);
+        ImGui::SliderFloat("r2", &s.state.r2, 0.2, M_PI / 2);
+
+        if (ImGui::Button(!s.params.isPlaying ? "|>" : "||")) {
+            s.params.isPlaying = !s.params.isPlaying;
+        }
+        ImGui::SameLine();
+        ImGui::SliderFloat("time", &s.params.time, 0, 630);
         ImGui::SliderFloat("cirrus", &s.params.cirrus, 0, 1);
         ImGui::SliderFloat("cumulus", &s.params.cumulus, 0, 1);
 
